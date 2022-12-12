@@ -1,8 +1,104 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
-import Image from 'next/image'
+import type { NextPage } from "next";
+import Head from "next/head";
+import Image from "next/image";
+import NextLink from "next/link";
 
-const Home: NextPage = () => {
+import {
+  ApolloClient,
+  InMemoryCache,
+  createHttpLink,
+  gql,
+} from "@apollo/client";
+import { setContext } from "@apollo/client/link/context";
+import {
+  Avatar,
+  AvatarBadge,
+  Box,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  Flex,
+  Heading,
+  Link,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
+import { getRepoPulls } from "../gql/queries/getRepoPulls";
+
+export type PRAuthor = Record<
+  "__typename" | "url" | "avatarUrl" | "name",
+  string
+>;
+export type PullReviews = {
+  __typename: string;
+  totalCount: number;
+};
+
+export interface PullRequest {
+  __typename: string;
+  author: PRAuthor;
+  isDraft: boolean;
+  bodyText: string;
+  changedFiles: number;
+  headRefName: string;
+  number: number;
+  lastEditedAt: null | string;
+  reviews: PullReviews;
+  title: string;
+  url: string;
+}
+
+export interface RepoInfo {
+  __typename: string;
+  id: string;
+  isPrivate: boolean;
+}
+
+const PRAuthor = ({ author }: { author: PRAuthor }) => (
+  <Flex flex="1" gap="4" alignItems="center" flexWrap="wrap">
+    <Avatar name={author.name} src={author.avatarUrl}>
+      <AvatarBadge borderColor="papayawhip" bg="tomato" boxSize="1.25em" />
+    </Avatar>
+    <Box>
+      <Heading size="xs">{author.name}</Heading>
+    </Box>
+  </Flex>
+);
+
+const PRSummaryCard = ({ pr }: { pr: PullRequest }) => {
+  return (
+    <Box>
+      <Card maxW="sm">
+        <CardHeader>
+          <Link as={NextLink} href={pr.url} isExternal>
+            <Heading size="sm">
+              #{pr.number}: {pr.title}
+            </Heading>
+          </Link>
+        </CardHeader>
+        <CardBody textAlign="left">
+          <Text>{pr.bodyText}</Text>
+        </CardBody>
+        <CardFooter justifyContent="space-between">
+          <Flex> 
+            <PRAuthor author={pr.author} />
+          </Flex>
+          <Text>
+            {pr.reviews.totalCount}
+          </Text>
+        </CardFooter>
+      </Card>
+    </Box>
+  );
+};
+
+type HomeProps = {
+  pullRequests: PullRequest[];
+  repoInfo: RepoInfo;
+};
+const Home: NextPage<HomeProps> = ({ pullRequests, repoInfo }) => {
+  console.log({ pullRequests });
   return (
     <div className="flex min-h-screen flex-col items-center justify-center py-2">
       <Head>
@@ -10,62 +106,13 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="flex w-full flex-1 flex-col items-center justify-center px-20 text-center">
-        <h1 className="text-6xl font-bold">
-          Welcome to{' '}
-          <a className="text-blue-600" href="https://nextjs.org">
-            Next.js!
-          </a>
-        </h1>
-
-        <p className="mt-3 text-2xl">
-          Get started by editing{' '}
-          <code className="rounded-md bg-gray-100 p-3 font-mono text-lg">
-            pages/index.tsx
-          </code>
-        </p>
-
-        <div className="mt-6 flex max-w-4xl flex-wrap items-center justify-around sm:w-full">
-          <a
-            href="https://nextjs.org/docs"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Documentation &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Find in-depth information about Next.js features and its API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Learn &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Learn about Next.js in an interactive course with quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Examples &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Discover and deploy boilerplate example Next.js projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Deploy &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
+      <main className="flex w-full justify-center px-20 text-center">
+        {repoInfo.isPrivate && <span>isPrivate</span>}
+        <Stack direction={["column", "row"]} spacing="8">
+          {pullRequests.map((pr: PullRequest) => (
+            <PRSummaryCard key={pr.number} pr={pr} />
+          ))}
+        </Stack>
       </main>
 
       <footer className="flex h-24 w-full items-center justify-center border-t">
@@ -75,12 +122,45 @@ const Home: NextPage = () => {
           target="_blank"
           rel="noopener noreferrer"
         >
-          Powered by{' '}
+          Powered by{" "}
           <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
         </a>
       </footer>
     </div>
-  )
-}
+  );
+};
 
-export default Home
+export default Home;
+
+export async function getStaticProps() {
+  const httpLink = createHttpLink({
+    uri: "https://api.github.com/graphql",
+  });
+
+  const authLink = setContext((_, { headers }) => {
+    return {
+      headers: {
+        ...headers,
+        authorization: `Bearer ${process.env.GITHUB_ACCESS_TOKEN}`,
+      },
+    };
+  });
+
+  const client = new ApolloClient({
+    link: authLink.concat(httpLink),
+    cache: new InMemoryCache(),
+  });
+
+  const { data } = await client.query({
+    query: getRepoPulls,
+  });
+
+  const { pullRequests: rawPullRequests, ...repoInfo } = data.repository;
+
+  return {
+    props: {
+      pullRequests: rawPullRequests.edges.map(({ node }) => node),
+      repoInfo,
+    },
+  };
+}
