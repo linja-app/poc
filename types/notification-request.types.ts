@@ -1,0 +1,1 @@
+export type Permission = "default" | "denied" | "granted";

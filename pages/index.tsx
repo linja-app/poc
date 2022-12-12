@@ -1,53 +1,17 @@
-import type { NextPage } from "next";
 import Head from "next/head";
 import Image from "next/image";
-import NextLink from "next/link";
 
 import {
-  ApolloClient,
-  InMemoryCache,
-  createHttpLink,
-  gql,
+  ApolloClient, createHttpLink, InMemoryCache
 } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
 import {
-  Avatar,
-  AvatarBadge,
-  Box,
-  Card,
-  CardBody,
-  CardFooter,
-  CardHeader,
-  Flex,
-  Heading,
-  Link,
-  Stack,
-  Text,
+  Stack
 } from "@chakra-ui/react";
+import KanbanBoard from "../components/kanban/KanbanBoard";
 import { getRepoPulls } from "../gql/queries/getRepoPulls";
-
-export type PRAuthor = Record<
-  "__typename" | "url" | "avatarUrl" | "name",
-  string
->;
-export type PullReviews = {
-  __typename: string;
-  totalCount: number;
-};
-
-export interface PullRequest {
-  __typename: string;
-  author: PRAuthor;
-  isDraft: boolean;
-  bodyText: string;
-  changedFiles: number;
-  headRefName: string;
-  number: number;
-  lastEditedAt: null | string;
-  reviews: PullReviews;
-  title: string;
-  url: string;
-}
+import { PullRequest } from "../types/data/pulls";
+import PullCard from "../components/pull-card/PullCard";
 
 export interface RepoInfo {
   __typename: string;
@@ -55,50 +19,11 @@ export interface RepoInfo {
   isPrivate: boolean;
 }
 
-const PRAuthor = ({ author }: { author: PRAuthor }) => (
-  <Flex flex="1" gap="4" alignItems="center" flexWrap="wrap">
-    <Avatar name={author.name} src={author.avatarUrl}>
-      <AvatarBadge borderColor="papayawhip" bg="tomato" boxSize="1.25em" />
-    </Avatar>
-    <Box>
-      <Heading size="xs">{author.name}</Heading>
-    </Box>
-  </Flex>
-);
-
-const PRSummaryCard = ({ pr }: { pr: PullRequest }) => {
-  return (
-    <Box>
-      <Card maxW="sm">
-        <CardHeader>
-          <Link as={NextLink} href={pr.url} isExternal>
-            <Heading size="sm">
-              #{pr.number}: {pr.title}
-            </Heading>
-          </Link>
-        </CardHeader>
-        <CardBody textAlign="left">
-          <Text>{pr.bodyText}</Text>
-        </CardBody>
-        <CardFooter justifyContent="space-between">
-          <Flex> 
-            <PRAuthor author={pr.author} />
-          </Flex>
-          <Text>
-            {pr.reviews.totalCount}
-          </Text>
-        </CardFooter>
-      </Card>
-    </Box>
-  );
-};
-
-type HomeProps = {
+type Props = {
   pullRequests: PullRequest[];
   repoInfo: RepoInfo;
 };
-const Home: NextPage<HomeProps> = ({ pullRequests, repoInfo }) => {
-  console.log({ pullRequests });
+const Home = ({ pullRequests, repoInfo }: Props) => {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center py-2">
       <Head>
@@ -107,12 +32,7 @@ const Home: NextPage<HomeProps> = ({ pullRequests, repoInfo }) => {
       </Head>
 
       <main className="flex w-full justify-center px-20 text-center">
-        {repoInfo.isPrivate && <span>isPrivate</span>}
-        <Stack direction={["column", "row"]} spacing="8">
-          {pullRequests.map((pr: PullRequest) => (
-            <PRSummaryCard key={pr.number} pr={pr} />
-          ))}
-        </Stack>
+        <KanbanBoard pulls={pullRequests} />
       </main>
 
       <footer className="flex h-24 w-full items-center justify-center border-t">
